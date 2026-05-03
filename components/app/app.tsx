@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainPage from '../../pages/MainPage';
+import ErrorPage from '../../pages/ErrorPage';
 import { AppRoute, AuthorizationStatus } from '../../const';
 import LoginPage from '../../pages/LoginPage';
 import FavoritesPage from '../../pages/FavoritesPage';
