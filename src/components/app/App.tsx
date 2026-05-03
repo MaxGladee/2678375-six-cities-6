@@ -6,12 +6,12 @@ import LoginPage from '../../pages/LoginPage';
 import FavoritesPage from '../../pages/FavoritesPage';
 import OfferPage from '../../pages/OfferPage';
 import PrivateRoute from '../private-route/PrivateRoute';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
+
+/**
+ * Main component, that is connected to index.tsx
+ */
 
 function App(): JSX.Element {
-  const offers = useSelector((state: RootState) => state.offers);
-
   return (
     <BrowserRouter>
       <Routes>
@@ -19,25 +19,29 @@ function App(): JSX.Element {
           path={AppRoute.Main}
           element={<MainPage />}
         />
+
         <Route
           path={AppRoute.Login}
-          element={<LoginPage />}
+          element = {<LoginPage/>}
         />
+
         <Route
           path={AppRoute.Favorites}
-          element={
+          element = {
             <PrivateRoute authorizationStatus={AuthorizationStatus.NoAuth}>
-              <FavoritesPage offers={offers} />
+              <FavoritesPage />
             </PrivateRoute>
           }
         />
+
         <Route
           path={AppRoute.Offer}
-          element={<OfferPage offers={offers} />}
+          element = {<OfferPage />}
         />
+
         <Route
           path="*"
-          element={<ErrorPage />}
+          element = {<ErrorPage/>}
         />
       </Routes>
     </BrowserRouter>

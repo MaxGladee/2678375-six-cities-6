@@ -1,53 +1,58 @@
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
+/**
+ * компонент MainPage — главная страница сайта.
+ * которая отображает секции из макета main.html
+ */
+
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { AppRoute } from '../const';
 import OffersList from '../components/OffersList';
 import Map from '../components/Map';
-import CityList from '../components/city-list/CityList';
-import SortingOptions, { SortType } from '../components/sorting-options/SortingOptions';
-import { RootState } from '../store';
-import { City, Point, Points } from '../types/types';
-import { Offer } from '../mocks/offers';
+import Spinner from '../components/Spinner';
+import ErrorMessage from '../components/ErrorMessage';
+import { City, Points } from '../types/types';
+import { RootState, AppDispatch } from '../store';
+import { changeCity, fetchOffersAction } from '../store/action';
+import CitiesList from '../components/CitiesList';
 
-function getSortedOffers(offers: Offer[], sortType: SortType): Offer[] {
-  switch (sortType) {
-    case SortType.PriceLowToHigh:
-      return [...offers].sort((a, b) => a.price - b.price);
-    case SortType.PriceHighToLow:
-      return [...offers].sort((a, b) => b.price - a.price);
-    case SortType.TopRated:
-      return [...offers].sort((a, b) => b.rating - a.rating);
-    default:
-      return offers;
-  }
-}
+const CITIES = ['Paris', 'Cologne', 'Brussels', 'Amsterdam', 'Hamburg', 'Dusseldorf'];
 
 function MainPage(): JSX.Element {
+  const dispatch = useDispatch<AppDispatch>();
   const selectedCity = useSelector((state: RootState) => state.city);
   const allOffers = useSelector((state: RootState) => state.offers);
+  const isOffersDataLoading = useSelector((state: RootState) => state.isOffersDataLoading);
+  const offersDataError = useSelector((state: RootState) => state.offersDataError);
 
-  const [currentSort, setCurrentSort] = useState<SortType>(SortType.Popular);
-  const [activeOfferId, setActiveOfferId] = useState<string | null>(null);
+  const filteredOffers = allOffers.filter((offer) => offer.city.name === selectedCity);
 
-  const cityOffers = allOffers.filter((offer) => offer.city === selectedCity);
-  const sortedOffers = getSortedOffers(cityOffers, currentSort);
+  const cityCoordinates: City = filteredOffers[0]
+    ? {
+      lat: filteredOffers[0].city.location.latitude,
+      lng: filteredOffers[0].city.location.longitude,
+      zoom: filteredOffers[0].city.location.zoom,
+    }
+    : {
+      // координаты по умолчанию
+      lat: 52.38333,
+      lng: 4.9,
+      zoom: 10,
+    };
 
-  const cityCenter: City = {
-    lat: cityOffers[0]?.location.latitude ?? 48.85341,
-    lng: cityOffers[0]?.location.longitude ?? 2.3488,
-  };
-
-  const points: Points = cityOffers.map((offer) => ({
+  const points: Points = filteredOffers.map((offer) => ({
     lat: offer.location.latitude,
     lng: offer.location.longitude,
     title: offer.title,
   }));
 
-  const activeOffer = cityOffers.find((offer) => offer.id === activeOfferId);
-  const selectedPoint: Point | undefined = activeOffer
-    ? { lat: activeOffer.location.latitude, lng: activeOffer.location.longitude, title: activeOffer.title }
-    : undefined;
+  useEffect(() => {
+    dispatch(fetchOffersAction());
+  }, [dispatch]);
+
+  const handleCityChange = (city: string) => {
+    dispatch(changeCity(city));
+  };
 
   return (
     <div className="page page--gray page--main">
@@ -63,7 +68,8 @@ function MainPage(): JSX.Element {
               <ul className="header__nav-list">
                 <li className="header__nav-item user">
                   <a className="header__nav-link header__nav-link--profile" href="#">
-                    <div className="header__avatar-wrapper user__avatar-wrapper"></div>
+                    <div className="header__avatar-wrapper user__avatar-wrapper">
+                    </div>
                     <span className="header__user-name user__name">Oliver.conner@gmail.com</span>
                     <span className="header__favorite-count">3</span>
                   </a>
@@ -81,21 +87,51 @@ function MainPage(): JSX.Element {
 
       <main className="page__main page__main--index">
         <h1 className="visually-hidden">Cities</h1>
-        <div className="tabs">
-          <section className="locations container">
-            <CityList selectedCity={selectedCity} />
-          </section>
-        </div>
+        <CitiesList
+          cities={CITIES}
+          selectedCity={selectedCity}
+          onCityChange={handleCityChange}
+        />
         <div className="cities">
           <div className="cities__places-container container">
             <section className="cities__places places">
               <h2 className="visually-hidden">Places</h2>
-              <b className="places__found">{cityOffers.length} places to stay in {selectedCity}</b>
-              <SortingOptions currentSort={currentSort} onSortChange={setCurrentSort} />
-              <OffersList offers={sortedOffers} onCardHover={setActiveOfferId} />
+              {offersDataError && (
+                <ErrorMessage message={offersDataError} />
+              )}
+              {!offersDataError && isOffersDataLoading && (
+                <Spinner />
+              )}
+              {!offersDataError && !isOffersDataLoading && (
+                <>
+                  <b className="places__found">
+                    {filteredOffers.length} places to stay in {selectedCity}
+                  </b>
+                  <form className="places__sorting" action="#" method="get">
+                    <span className="places__sorting-caption">Sort by</span>
+                    <span className="places__sorting-type" tabIndex={0}>
+                      Popular
+                      <svg className="places__sorting-arrow" width="7" height="4">
+                        <use href="#icon-arrow-select"></use>
+                      </svg>
+                    </span>
+                    <ul className="places__options places__options--custom places__options--opened">
+                      <li className="places__option places__option--active" tabIndex={0}>Popular</li>
+                      <li className="places__option" tabIndex={0}>Price: low to high</li>
+                      <li className="places__option" tabIndex={0}>Price: high to low</li>
+                      <li className="places__option" tabIndex={0}>Top rated first</li>
+                    </ul>
+                  </form>
+                  <OffersList offers={filteredOffers} />
+                </>
+              )}
             </section>
             <div className="cities__right-section">
-              <Map city={cityCenter} points={points} selectedPoint={selectedPoint} />
+              <Map
+                city={cityCoordinates}
+                points={points}
+                selectedPoint={undefined}
+              />
             </div>
           </div>
         </div>
