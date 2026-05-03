@@ -1,0 +1,56 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import MainPage from '../../pages/MainPage';
+import { AppRoute, AuthorizationStatus } from '../../const';
+import LoginPage from '../../pages/LoginPage';
+import FavoritesPage from '../../pages/FavoritesPage';
+import OfferPage from '../../pages/OfferPage';
+import PrivateRoute from '../private-route/PrivateRoute';
+
+/**
+ * Main component, that is connected to index.tsx
+ */
+
+interface AppProps {
+    cardsCount: number;
+}
+
+function App({ cardsCount }: AppProps): JSX.Element {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path={AppRoute.Main}
+          element = {
+            <MainPage cardsCount={cardsCount} />
+          }
+        />
+
+        <Route
+          path={AppRoute.Login}
+          element = {<LoginPage/>}
+        />
+
+        <Route
+          path={AppRoute.Favorites}
+          element = {
+            <PrivateRoute authorizationStatus={AuthorizationStatus.NoAuth}>
+              <FavoritesPage/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path={AppRoute.Offer}
+          element = {<OfferPage/>}
+        />
+
+        <Route
+          path="*"
+          element = {<ErrorPage/>}
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
