@@ -1,33 +1,28 @@
-/**
- * компонент MainPage — главная страница сайта.
- * которая отображает секции из макета main.html
- */
-
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { AppRoute } from '../const';
 import OffersList from '../components/OffersList';
-import { Offer } from '../mocks/offers';
 import Map from '../components/Map';
+import CityList from '../components/city-list/CityList';
+import { RootState } from '../store';
 import { City, Points } from '../types/types';
 
-interface MainPageProps {
-  offers: Offer[];
-}
+function MainPage(): JSX.Element {
+  const selectedCity = useSelector((state: RootState) => state.city);
+  const allOffers = useSelector((state: RootState) => state.offers);
 
-function MainPage({ offers }: MainPageProps): JSX.Element {
-  const amsterdamOffers = offers.filter((offer) => offer.city === 'Amsterdam');
+  const cityOffers = allOffers.filter((offer) => offer.city === selectedCity);
 
-  const amsterdamCity: City = {
-    lat: 52.38333,
-    lng: 4.9,
+  const cityCenter: City = {
+    lat: cityOffers[0]?.location.latitude ?? 48.85341,
+    lng: cityOffers[0]?.location.longitude ?? 2.3488,
   };
 
-  const points: Points = amsterdamOffers.map((offer) => ({
+  const points: Points = cityOffers.map((offer) => ({
     lat: offer.location.latitude,
     lng: offer.location.longitude,
     title: offer.title,
   }));
-
 
   return (
     <div className="page page--gray page--main">
@@ -43,8 +38,7 @@ function MainPage({ offers }: MainPageProps): JSX.Element {
               <ul className="header__nav-list">
                 <li className="header__nav-item user">
                   <a className="header__nav-link header__nav-link--profile" href="#">
-                    <div className="header__avatar-wrapper user__avatar-wrapper">
-                    </div>
+                    <div className="header__avatar-wrapper user__avatar-wrapper"></div>
                     <span className="header__user-name user__name">Oliver.conner@gmail.com</span>
                     <span className="header__favorite-count">3</span>
                   </a>
@@ -64,45 +58,14 @@ function MainPage({ offers }: MainPageProps): JSX.Element {
         <h1 className="visually-hidden">Cities</h1>
         <div className="tabs">
           <section className="locations container">
-            <ul className="locations__list tabs__list">
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Paris</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Cologne</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Brussels</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item tabs__item--active">
-                  <span>Amsterdam</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Hamburg</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Dusseldorf</span>
-                </a>
-              </li>
-            </ul>
+            <CityList selectedCity={selectedCity} />
           </section>
         </div>
         <div className="cities">
           <div className="cities__places-container container">
             <section className="cities__places places">
               <h2 className="visually-hidden">Places</h2>
-              <b className="places__found">312 places to stay in Amsterdam</b>
+              <b className="places__found">{cityOffers.length} places to stay in {selectedCity}</b>
               <form className="places__sorting" action="#" method="get">
                 <span className="places__sorting-caption">Sort by</span>
                 <span className="places__sorting-type" tabIndex={0}>
@@ -118,11 +81,11 @@ function MainPage({ offers }: MainPageProps): JSX.Element {
                   <li className="places__option" tabIndex={0}>Top rated first</li>
                 </ul>
               </form>
-              <OffersList offers={offers} />
+              <OffersList offers={cityOffers} />
             </section>
             <div className="cities__right-section">
               <Map
-                city={amsterdamCity}
+                city={cityCenter}
                 points={points}
                 selectedPoint={undefined}
               />
