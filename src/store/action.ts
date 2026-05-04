@@ -3,24 +3,18 @@ import { AxiosInstance } from 'axios';
 import { AppDispatch, RootState } from './index';
 import { Offer } from '../types/offer';
 import { User } from '../types/user';
-import { Comment } from '../types/comment';
 import { AuthorizationStatus } from '../const';
 import { TOKEN_KEY } from '../services/api';
 
 export const changeCity = createAction<string>('app/changeCity');
+
 export const loadOffers = createAction<Offer[]>('app/loadOffers');
+
 export const setOffersDataLoading = createAction<boolean>('app/setOffersDataLoading');
 export const setOffersDataError = createAction<string | null>('app/setOffersDataError');
+
 export const requireAuthorization = createAction<AuthorizationStatus>('user/requireAuthorization');
 export const setUser = createAction<User | null>('user/setUser');
-export const logout = createAction('user/logout');
-
-// Offer page actions
-export const setCurrentOffer = createAction<Offer | null>('offer/setCurrent');
-export const setNearbyOffers = createAction<Offer[]>('offer/setNearby');
-export const setComments = createAction<Comment[]>('offer/setComments');
-export const setOfferLoading = createAction<boolean>('offer/setLoading');
-export const setOfferNotFound = createAction<boolean>('offer/setNotFound');
 
 export const fetchOffersAction = () =>
   async (dispatch: AppDispatch, _getState: () => RootState, api: AxiosInstance) => {
@@ -37,33 +31,6 @@ export const fetchOffersAction = () =>
     } finally {
       dispatch(setOffersDataLoading(false));
     }
-  };
-
-export const fetchOfferAction = (id: string) =>
-  async (dispatch: AppDispatch, _getState: () => RootState, api: AxiosInstance) => {
-    dispatch(setOfferLoading(true));
-    dispatch(setOfferNotFound(false));
-    try {
-      const [offerRes, nearbyRes, commentsRes] = await Promise.all([
-        api.get<Offer>(`/offers/${id}`),
-        api.get<Offer[]>(`/offers/${id}/nearby`),
-        api.get<Comment[]>(`/comments/${id}`),
-      ]);
-      dispatch(setCurrentOffer(offerRes.data));
-      dispatch(setNearbyOffers(nearbyRes.data.slice(0, 3)));
-      dispatch(setComments(commentsRes.data));
-    } catch {
-      dispatch(setOfferNotFound(true));
-      dispatch(setCurrentOffer(null));
-    } finally {
-      dispatch(setOfferLoading(false));
-    }
-  };
-
-export const submitCommentAction = (id: string, comment: string, rating: number) =>
-  async (dispatch: AppDispatch, _getState: () => RootState, api: AxiosInstance) => {
-    const { data } = await api.post<Comment[]>(`/comments/${id}`, { comment, rating });
-    dispatch(setComments(data));
   };
 
 export const checkAuthAction = () =>
@@ -90,3 +57,10 @@ export const loginAction = (email: string, password: string) =>
       throw error;
     }
   };
+
+export const logout = createAction('user/logout');
+
+export const logoutAction = () => (dispatch: AppDispatch) => {
+  localStorage.removeItem(TOKEN_KEY);
+  dispatch(logout());
+};

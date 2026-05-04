@@ -2,27 +2,16 @@ import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { AppRoute, AuthorizationStatus } from '../const';
-import { AppDispatch, RootState } from '../store';
+import { AppRoute } from '../const';
+import { AppDispatch } from '../store';
 import { loginAction } from '../store/action';
-
-function validatePassword(password: string): string | null {
-  if (password.trim().length === 0) {
-    return 'Password cannot be empty or contain only spaces';
-  }
-  if (!/[a-zA-Z]/.test(password)) {
-    return 'Password must contain at least one letter';
-  }
-  if (!/[0-9]/.test(password)) {
-    return 'Password must contain at least one digit';
-  }
-  return null;
-}
+import { AuthorizationStatus } from '../const';
+import { getAuthorizationStatus } from '../store/selectors';
 
 function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const authorizationStatus = useSelector((state: RootState) => state.authorizationStatus);
+  const authorizationStatus = useSelector(getAuthorizationStatus);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,13 +24,22 @@ function LoginPage(): JSX.Element {
     }
   }, [authorizationStatus, navigate]);
 
+  const handleEmailChange = (evt: ChangeEvent<HTMLInputElement>) => {
+    setEmail(evt.target.value);
+    setError(null);
+  };
+
+  const handlePasswordChange = (evt: ChangeEvent<HTMLInputElement>) => {
+    setPassword(evt.target.value);
+    setError(null);
+  };
+
   const handleSubmit = async (evt: FormEvent<HTMLFormElement>) => {
     evt.preventDefault();
     setError(null);
 
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setError(passwordError);
+    if (password.trim().length === 0) {
+      setError('Password cannot be empty or contain only spaces');
       return;
     }
 
@@ -51,9 +49,11 @@ function LoginPage(): JSX.Element {
       navigate(AppRoute.Main);
     } catch (err) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { status?: number } };
-        if (axiosError.response?.status === 400 || axiosError.response?.status === 401) {
-          setError('Invalid email or password. Password must contain at least one letter and one digit.');
+        const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 400) {
+          setError(axiosError.response.data?.message || 'Invalid email or password');
+        } else if (axiosError.response?.status === 401) {
+          setError('Invalid email or password');
         } else {
           setError('Failed to login. Please try again.');
         }
@@ -83,11 +83,9 @@ function LoginPage(): JSX.Element {
         <div className="page__login-container container">
           <section className="login">
             <h1 className="login__title">Sign in</h1>
-            <form
-              className="login__form form"
-              action="#"
-              method="post"
-              onSubmit={(e) => { void handleSubmit(e); }}
+            <form className="login__form form" action="#" method="post" onSubmit={(e) => {
+              void handleSubmit(e);
+            }}
             >
               {error && (
                 <div style={{ color: '#ff6b6b', marginBottom: '10px', fontSize: '14px' }}>
@@ -103,10 +101,7 @@ function LoginPage(): JSX.Element {
                   placeholder="Email"
                   required
                   value={email}
-                  onChange={(evt: ChangeEvent<HTMLInputElement>) => {
-                    setEmail(evt.target.value);
-                    setError(null);
-                  }}
+                  onChange={handleEmailChange}
                   disabled={isSubmitting}
                 />
               </div>
@@ -119,10 +114,7 @@ function LoginPage(): JSX.Element {
                   placeholder="Password"
                   required
                   value={password}
-                  onChange={(evt: ChangeEvent<HTMLInputElement>) => {
-                    setPassword(evt.target.value);
-                    setError(null);
-                  }}
+                  onChange={handlePasswordChange}
                   disabled={isSubmitting}
                 />
               </div>

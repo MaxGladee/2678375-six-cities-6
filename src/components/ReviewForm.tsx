@@ -1,69 +1,104 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from '../store';
-import { submitCommentAction } from '../store/action';
 
-interface ReviewFormProps {
-  offerId: string;
-}
-
-function ReviewForm({ offerId }: ReviewFormProps): JSX.Element {
-  const dispatch = useDispatch<AppDispatch>();
+function ReviewForm(): JSX.Element {
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isFormValid = rating > 0 && comment.length >= 50 && comment.length <= 300;
-
-  const handleSubmit = async (evt: FormEvent<HTMLFormElement>) => {
-    evt.preventDefault();
-    if (!isFormValid) {
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await dispatch(submitCommentAction(offerId, comment, rating));
-      setRating(0);
-      setComment('');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleRatingChange = (evt: ChangeEvent<HTMLInputElement>) => {
+    setRating(Number(evt.target.value));
   };
 
+  const handleCommentChange = (evt: ChangeEvent<HTMLTextAreaElement>) => {
+    setComment(evt.target.value);
+  };
+
+  const handleSubmit = (evt: FormEvent<HTMLFormElement>) => {
+    evt.preventDefault();
+
+    setRating(0);
+    setComment('');
+  };
+
+  const isFormValid = rating > 0 && comment.length >= 50;
+
   return (
-    <form
-      className="reviews__form form"
-      action="#"
-      method="post"
-      onSubmit={(e) => { void handleSubmit(e); }}
-    >
+    <form className="reviews__form form" action="#" method="post" onSubmit={handleSubmit}>
       <label className="reviews__label form__label" htmlFor="review">Your review</label>
       <div className="reviews__rating-form form__rating">
-        {[5, 4, 3, 2, 1].map((star) => (
-          <>
-            <input
-              key={`input-${star}`}
-              className="form__rating-input visually-hidden"
-              name="rating"
-              value={`${star}`}
-              id={`${star}-star${star > 1 ? 's' : ''}`}
-              type="radio"
-              checked={rating === star}
-              onChange={(evt: ChangeEvent<HTMLInputElement>) => setRating(Number(evt.target.value))}
-              disabled={isSubmitting}
-            />
-            <label
-              key={`label-${star}`}
-              htmlFor={`${star}-star${star > 1 ? 's' : ''}`}
-              className="reviews__rating-label form__rating-label"
-              title={['terribly', 'badly', 'not bad', 'good', 'perfect'][star - 1]}
-            >
-              <svg className="form__star-image" width="37" height="33">
-                <use href="#icon-star"></use>
-              </svg>
-            </label>
-          </>
-        ))}
+        <input
+          className="form__rating-input visually-hidden"
+          name="rating"
+          value="5"
+          id="5-stars"
+          type="radio"
+          checked={rating === 5}
+          onChange={handleRatingChange}
+        />
+        <label htmlFor="5-stars" className="reviews__rating-label form__rating-label" title="perfect">
+          <svg className="form__star-image" width="37" height="33">
+            <use href="#icon-star"></use>
+          </svg>
+        </label>
+
+        <input
+          className="form__rating-input visually-hidden"
+          name="rating"
+          value="4"
+          id="4-stars"
+          type="radio"
+          checked={rating === 4}
+          onChange={handleRatingChange}
+        />
+        <label htmlFor="4-stars" className="reviews__rating-label form__rating-label" title="good">
+          <svg className="form__star-image" width="37" height="33">
+            <use href="#icon-star"></use>
+          </svg>
+        </label>
+
+        <input
+          className="form__rating-input visually-hidden"
+          name="rating"
+          value="3"
+          id="3-stars"
+          type="radio"
+          checked={rating === 3}
+          onChange={handleRatingChange}
+        />
+        <label htmlFor="3-stars" className="reviews__rating-label form__rating-label" title="not bad">
+          <svg className="form__star-image" width="37" height="33">
+            <use href="#icon-star"></use>
+          </svg>
+        </label>
+
+        <input
+          className="form__rating-input visually-hidden"
+          name="rating"
+          value="2"
+          id="2-stars"
+          type="radio"
+          checked={rating === 2}
+          onChange={handleRatingChange}
+        />
+        <label htmlFor="2-stars" className="reviews__rating-label form__rating-label" title="badly">
+          <svg className="form__star-image" width="37" height="33">
+            <use href="#icon-star"></use>
+          </svg>
+        </label>
+
+        <input
+          className="form__rating-input visually-hidden"
+          name="rating"
+          value="1"
+          id="1-star"
+          type="radio"
+          checked={rating === 1}
+          onChange={handleRatingChange}
+        />
+        <label htmlFor="1-star" className="reviews__rating-label form__rating-label" title="terribly">
+          <svg className="form__star-image" width="37" height="33">
+            <use href="#icon-star"></use>
+          </svg>
+        </label>
       </div>
       <textarea
         className="reviews__textarea form__textarea"
@@ -71,19 +106,14 @@ function ReviewForm({ offerId }: ReviewFormProps): JSX.Element {
         name="review"
         placeholder="Tell how was your stay, what you like and what can be improved"
         value={comment}
-        onChange={(evt: ChangeEvent<HTMLTextAreaElement>) => setComment(evt.target.value)}
-        disabled={isSubmitting}
+        onChange={handleCommentChange}
       />
       <div className="reviews__button-wrapper">
         <p className="reviews__help">
           To submit review please make sure to set <span className="reviews__star">rating</span> and describe your stay with at least <b className="reviews__text-amount">50 characters</b>.
         </p>
-        <button
-          className="reviews__submit form__submit button"
-          type="submit"
-          disabled={!isFormValid || isSubmitting}
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
+        <button className="reviews__submit form__submit button" type="submit" disabled={!isFormValid}>
+          Submit
         </button>
       </div>
     </form>

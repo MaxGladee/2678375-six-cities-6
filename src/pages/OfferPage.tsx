@@ -1,76 +1,40 @@
-import { useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppRoute, AuthorizationStatus } from '../const';
-import { AppDispatch, RootState } from '../store';
-import { fetchOfferAction } from '../store/action';
+import { useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { AppRoute } from '../const';
+import { useEffect, useMemo } from 'react';
 import ReviewForm from '../components/ReviewForm';
-import Map from '../components/Map';
-import { City, Points } from '../types/types';
+import { getAllOffers } from '../store/selectors';
 
 function OfferPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
-
-  const offer = useSelector((state: RootState) => state.currentOffer);
-  const nearbyOffers = useSelector((state: RootState) => state.nearbyOffers);
-  const comments = useSelector((state: RootState) => state.comments);
-  const isLoading = useSelector((state: RootState) => state.isOfferLoading);
-  const isNotFound = useSelector((state: RootState) => state.isOfferNotFound);
-  const authorizationStatus = useSelector((state: RootState) => state.authorizationStatus);
+  const allOffers = useSelector(getAllOffers);
 
   useEffect(() => {
-    if (id) {
-      dispatch(fetchOfferAction(id));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [id, dispatch]);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [id]);
 
-  useEffect(() => {
-    if (isNotFound) {
-      navigate('*');
-    }
-  }, [isNotFound, navigate]);
+  const offer = useMemo(() => allOffers.find((o) => o.id === id), [allOffers, id]);
 
-  if (isLoading) {
-    return (
-      <div className="page">
-        <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-      </div>
-    );
-  }
+  const ratingWidth = useMemo(() => offer ? `${Math.round(offer.rating * 20)}%` : '0%', [offer]);
+
+  const nearOffers = useMemo(() => {
+    if (!offer) {
+      return [];
+    }
+    return allOffers
+      .filter((o) => o.city.name === offer.city.name && o.id !== offer.id)
+      .slice(0, 3);
+  }, [allOffers, offer]);
 
   if (!offer) {
     return (
       <div className="page">
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <h1>Offer not found</h1>
-          <Link to={AppRoute.Main}>Go to main page</Link>
-        </div>
+        <h1>Offer not found</h1>
+        <Link to={AppRoute.Main}>Go to main page</Link>
       </div>
     );
   }
-
-  const ratingWidth = `${Math.round(offer.rating * 20)}%`;
-
-  const cityCenter: City = {
-    lat: offer.city.location.latitude,
-    lng: offer.city.location.longitude,
-  };
-
-  const allPoints = [offer, ...nearbyOffers];
-  const points: Points = allPoints.map((o) => ({
-    lat: o.location.latitude,
-    lng: o.location.longitude,
-    title: o.title,
-  }));
-
-  const selectedPoint = {
-    lat: offer.location.latitude,
-    lng: offer.location.longitude,
-    title: offer.title,
-  };
 
   return (
     <div className="page">
@@ -86,7 +50,8 @@ function OfferPage(): JSX.Element {
               <ul className="header__nav-list">
                 <li className="header__nav-item user">
                   <a className="header__nav-link header__nav-link--profile" href="#">
-                    <div className="header__avatar-wrapper user__avatar-wrapper"></div>
+                    <div className="header__avatar-wrapper user__avatar-wrapper">
+                    </div>
                     <span className="header__user-name user__name">Oliver.conner@gmail.com</span>
                     <span className="header__favorite-count">3</span>
                   </a>
@@ -106,8 +71,8 @@ function OfferPage(): JSX.Element {
         <section className="offer">
           <div className="offer__gallery-container container">
             <div className="offer__gallery">
-              {offer.images?.map((image) => (
-                <div key={image} className="offer__image-wrapper">
+              {offer.images && offer.images.map((image) => (
+                <div key={`${image}-${offer.id}`} className="offer__image-wrapper">
                   <img className="offer__image" src={image} alt="Photo studio" />
                 </div>
               ))}
@@ -116,14 +81,15 @@ function OfferPage(): JSX.Element {
           <div className="offer__container container">
             <div className="offer__wrapper">
               {offer.isPremium && (
-                <div className="offer__mark"><span>Premium</span></div>
+                <div className="offer__mark">
+                  <span>Premium</span>
+                </div>
               )}
               <div className="offer__name-wrapper">
-                <h1 className="offer__name">{offer.title}</h1>
-                <button
-                  className={`offer__bookmark-button button ${offer.isFavorite ? 'offer__bookmark-button--active' : ''}`}
-                  type="button"
-                >
+                <h1 className="offer__name">
+                  {offer.title}
+                </h1>
+                <button className={`offer__bookmark-button button ${offer.isFavorite ? 'place-card__bookmark-button--active' : ''}`} type="button">
                   <svg className="offer__bookmark-icon" width="31" height="33">
                     <use href="#icon-bookmark"></use>
                   </svg>
@@ -138,7 +104,9 @@ function OfferPage(): JSX.Element {
                 <span className="offer__rating-value rating__value">{offer.rating}</span>
               </div>
               <ul className="offer__features">
-                <li className="offer__feature offer__feature--entire">{offer.type}</li>
+                <li className="offer__feature offer__feature--entire">
+                  {offer.type}
+                </li>
                 {offer.bedrooms !== undefined && (
                   <li className="offer__feature offer__feature--bedrooms">
                     {offer.bedrooms} {offer.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
@@ -159,7 +127,9 @@ function OfferPage(): JSX.Element {
                   <h2 className="offer__inside-title">What&apos;s inside</h2>
                   <ul className="offer__inside-list">
                     {offer.goods.map((good) => (
-                      <li key={good} className="offer__inside-item">{good}</li>
+                      <li key={good} className="offer__inside-item">
+                        {good}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -172,7 +142,9 @@ function OfferPage(): JSX.Element {
                       <img className="offer__avatar user__avatar" src={offer.host.avatarUrl} width="74" height="74" alt="Host avatar" />
                     </div>
                     <span className="offer__user-name">{offer.host.name}</span>
-                    {offer.host.isPro && <span className="offer__user-status">Pro</span>}
+                    {offer.host.isPro && (
+                      <span className="offer__user-status">Pro</span>
+                    )}
                   </div>
                   {offer.description && (
                     <div className="offer__description">
@@ -181,84 +153,83 @@ function OfferPage(): JSX.Element {
                   )}
                 </div>
               )}
-
               <section className="offer__reviews reviews">
-                <h2 className="reviews__title">
-                  Reviews &middot; <span className="reviews__amount">{comments.length}</span>
-                </h2>
+                <h2 className="reviews__title">Reviews &middot; <span className="reviews__amount">1</span></h2>
                 <ul className="reviews__list">
-                  {comments.map((review) => (
-                    <li key={review.id} className="reviews__item">
-                      <div className="reviews__user user">
-                        <div className="reviews__avatar-wrapper user__avatar-wrapper">
-                          <img className="reviews__avatar user__avatar" src={review.user.avatarUrl} width="54" height="54" alt="Reviews avatar" />
-                        </div>
-                        <span className="reviews__user-name">{review.user.name}</span>
+                  <li className="reviews__item">
+                    <div className="reviews__user user">
+                      <div className="reviews__avatar-wrapper user__avatar-wrapper">
+                        <img className="reviews__avatar user__avatar" src="img/avatar-max.jpg" width="54" height="54" alt="Reviews avatar" />
                       </div>
-                      <div className="reviews__info">
-                        <div className="reviews__rating rating">
-                          <div className="reviews__stars rating__stars">
-                            <span style={{ width: `${Math.round(review.rating * 20)}%` }}></span>
-                            <span className="visually-hidden">Rating</span>
-                          </div>
+                      <span className="reviews__user-name">
+                        Max
+                      </span>
+                    </div>
+                    <div className="reviews__info">
+                      <div className="reviews__rating rating">
+                        <div className="reviews__stars rating__stars">
+                          <span style={{ width: '80%' }}></span>
+                          <span className="visually-hidden">Rating</span>
                         </div>
-                        <p className="reviews__text">{review.comment}</p>
-                        <time className="reviews__time" dateTime={review.date}>
-                          {new Date(review.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                        </time>
                       </div>
-                    </li>
-                  ))}
+                      <p className="reviews__text">
+                        A quiet cozy and picturesque that hides behind a a river by the unique lightness of Amsterdam. The building is green and from 18th century.
+                      </p>
+                      <time className="reviews__time" dateTime="2019-04-24">April 2019</time>
+                    </div>
+                  </li>
                 </ul>
-                {authorizationStatus === AuthorizationStatus.Auth && id && (
-                  <ReviewForm offerId={id} />
-                )}
+                <ReviewForm />
               </section>
             </div>
           </div>
-          <Map city={cityCenter} points={points} selectedPoint={selectedPoint} />
+          <section className="offer__map map"></section>
         </section>
-
         <div className="container">
           <section className="near-places places">
             <h2 className="near-places__title">Other places in the neighbourhood</h2>
             <div className="near-places__list places__list">
-              {nearbyOffers.map((nearOffer) => (
-                <article key={nearOffer.id} className="near-places__card place-card">
-                  {nearOffer.isPremium && (
-                    <div className="place-card__mark"><span>Premium</span></div>
-                  )}
-                  <div className="near-places__image-wrapper place-card__image-wrapper">
-                    <Link to={`/offer/${nearOffer.id}`}>
-                      <img className="place-card__image" src={nearOffer.previewImage} width="260" height="200" alt="Place image" />
-                    </Link>
-                  </div>
-                  <div className="place-card__info">
-                    <div className="place-card__price-wrapper">
-                      <div className="place-card__price">
-                        <b className="place-card__price-value">&euro;{nearOffer.price}</b>
-                        <span className="place-card__price-text">&#47;&nbsp;night</span>
+              {nearOffers.map((nearOffer) => {
+                const nearRatingWidth = `${Math.round(nearOffer.rating * 20)}%`;
+                return (
+                  <article key={nearOffer.id} className="near-places__card place-card">
+                    {nearOffer.isPremium && (
+                      <div className="place-card__mark">
+                        <span>Premium</span>
                       </div>
-                      <button className="place-card__bookmark-button button" type="button">
-                        <svg className="place-card__bookmark-icon" width="18" height="19">
-                          <use href="#icon-bookmark"></use>
-                        </svg>
-                        <span className="visually-hidden">To bookmarks</span>
-                      </button>
+                    )}
+                    <div className="near-places__image-wrapper place-card__image-wrapper">
+                      <Link to={`/offer/${nearOffer.id}`}>
+                        <img className="place-card__image" src={nearOffer.previewImage} width="260" height="200" alt="Place image" />
+                      </Link>
                     </div>
-                    <div className="place-card__rating rating">
-                      <div className="place-card__stars rating__stars">
-                        <span style={{ width: `${Math.round(nearOffer.rating * 20)}%` }}></span>
-                        <span className="visually-hidden">Rating</span>
+                    <div className="place-card__info">
+                      <div className="place-card__price-wrapper">
+                        <div className="place-card__price">
+                          <b className="place-card__price-value">&euro;{nearOffer.price}</b>
+                          <span className="place-card__price-text">&#47;&nbsp;night</span>
+                        </div>
+                        <button className={`place-card__bookmark-button button ${nearOffer.isFavorite ? 'place-card__bookmark-button--active' : ''}`} type="button">
+                          <svg className="place-card__bookmark-icon" width="18" height="19">
+                            <use href="#icon-bookmark"></use>
+                          </svg>
+                          <span className="visually-hidden">{nearOffer.isFavorite ? 'In bookmarks' : 'To bookmarks'}</span>
+                        </button>
                       </div>
+                      <div className="place-card__rating rating">
+                        <div className="place-card__stars rating__stars">
+                          <span style={{ width: nearRatingWidth }}></span>
+                          <span className="visually-hidden">Rating</span>
+                        </div>
+                      </div>
+                      <h2 className="place-card__name">
+                        <Link to={`/offer/${nearOffer.id}`}>{nearOffer.title}</Link>
+                      </h2>
+                      <p className="place-card__type">{nearOffer.type}</p>
                     </div>
-                    <h2 className="place-card__name">
-                      <Link to={`/offer/${nearOffer.id}`}>{nearOffer.title}</Link>
-                    </h2>
-                    <p className="place-card__type">{nearOffer.type}</p>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </section>
         </div>
